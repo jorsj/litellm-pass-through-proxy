@@ -1,0 +1,10 @@
+model_list:
+  - model_name: imagen-3.0-generate-001
+    litellm_params:
+        model: vertex_ai/imagen-3.0-generate-001
+  - model_name: gemini-3-pro-preview
+    litellm_params:
+        model: vertex_ai/gemini-3-pro-preview
+  - model_name: gemini-2.5-flash
+    litellm_params:
+        model: vertex_ai/gemini-2.5-flash
