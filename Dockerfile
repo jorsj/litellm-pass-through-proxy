@@ -7,7 +7,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 # Copy project files
 COPY pyproject.toml uv.lock ./
-COPY main.py config.yaml custom_callbacks.py run_proxy.py ./
+COPY config.yaml custom_callbacks.py run_proxy.py ./
 
 # Install dependencies
 # --frozen ensures we use the exact versions in uv.lock
