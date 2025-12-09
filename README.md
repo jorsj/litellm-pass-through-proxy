@@ -22,6 +22,36 @@ This is a lightweight proxy server using [LiteLLM](https://github.com/BerriAI/li
     ```
     The server will start on `http://0.0.0.0:8000`.
 
+## GCloud Auth Setup
+
+To use the `curl` examples below with `$(gcloud auth print-access-token)`, you need to have the Google Cloud CLI installed and authenticated.
+
+1.  **Install Google Cloud CLI:**
+    Follow the official guide: https://cloud.google.com/sdk/docs/install
+
+2.  **Login:**
+    ```bash
+    gcloud auth login
+    ```
+    This authorizes the gcloud CLI to access Google Cloud APIs.
+
+3.  **(Optional) Set Default Project:**
+    ```bash
+    gcloud config set project YOUR_PROJECT_ID
+    ```
+
+4.  **(Optional) Application Default Credentials:**
+    If you prefer not to pass the token explicitly in every request (or to run the proxy with default local credentials), you can set up Application Default Credentials (ADC):
+    ```bash
+    gcloud auth application-default login
+    ```
+    This creates a credentials file that client libraries can automatically find.
+
+    To explicitly set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable (e.g., when using a Service Account key):
+    ```bash
+    export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/service-account-key.json"
+    ```
+
 ## Usage
 
 ### Chat Completion
@@ -31,12 +61,11 @@ curl -X POST http://localhost:8000/chat/completions \
   -H "Content-Type: application/json" \
   -H "x-gcp-project: your-project-id" \
   -H "x-gcp-location: us-central1" \
-  -H "Authorization: Bearer optional-proxy-key" \
-  -d 
-  {
+  -H "Authorization: Bearer $(gcloud auth print-access-token)$" \
+  -d '{
     "model": "gemini-2.5-flash",
     "messages": [{"role": "user", "content": "Hello!"}]
-  }
+  }'
 ```
 
 ### Image Generation
@@ -45,11 +74,10 @@ curl -X POST http://localhost:8000/chat/completions \
 curl -X POST http://localhost:8000/images/generations \
   -H "Content-Type: application/json" \
   -H "x-gcp-project: your-project-id" \
-  -d 
-  {
+  -d '{
     "model": "imagen-3.0-generate-001",
     "prompt": "A futuristic city"
-  }
+  }'
 ```
 
 ### Custom Headers
