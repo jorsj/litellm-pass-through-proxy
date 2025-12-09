@@ -13,7 +13,6 @@ class DynamicGCPRouter(CustomLogger):
             "moderation",
             "audio_transcription",
     ]):
-        print(data)
         """
         1. Reads 'x-gcp-project' (or similar) from headers.
         2. Overwrites the LiteLLM parameters for this specific request.
