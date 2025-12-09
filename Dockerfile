@@ -7,7 +7,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 # Copy project files
 COPY pyproject.toml uv.lock ./
-COPY config.yaml custom_callbacks.py run_proxy.py ./
+COPY config.yaml custom_callbacks.py ./
 
 # Install dependencies
 # --frozen ensures we use the exact versions in uv.lock
@@ -19,4 +19,4 @@ RUN uv sync --frozen --no-cache
 ENV PORT=8000
 
 # Run the proxy
-CMD ["uv", "run", "run_proxy.py"]
+CMD ["uv", "run", "litellm", "--config", "config.yaml", "--port", "8000"]

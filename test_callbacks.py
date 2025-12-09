@@ -1,5 +1,4 @@
 import pytest
-from unittest.mock import MagicMock
 from custom_callbacks import DynamicGCPRouter
 
 @pytest.mark.asyncio

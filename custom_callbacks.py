@@ -1,8 +1,19 @@
-import litellm
 from litellm.integrations.custom_logger import CustomLogger
+import litellm
+from litellm.proxy.proxy_server import UserAPIKeyAuth, DualCache
+from litellm.types.utils import ModelResponseStream
+from typing import Any, AsyncGenerator, Optional, Literal
 
 class DynamicGCPRouter(CustomLogger):
-    async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
+    async def async_pre_call_hook(self, user_api_key_dict: UserAPIKeyAuth, cache: DualCache, data: dict, call_type: Literal[
+            "completion",
+            "text_completion",
+            "embeddings",
+            "image_generation",
+            "moderation",
+            "audio_transcription",
+    ]):
+        print(data)
         """
         1. Reads 'x-gcp-project' (or similar) from headers.
         2. Overwrites the LiteLLM parameters for this specific request.
@@ -15,7 +26,7 @@ class DynamicGCPRouter(CustomLogger):
         headers = {k.lower(): v for k, v in raw_headers.items()}
         
         # Debug print to verify headers are coming through
-        # print(f"DEBUG: Incoming Headers: {headers.keys()}")
+        print(f"DEBUG: Incoming Headers: {headers.keys()}")
 
         # 1. Handle Dynamic Project ID
         # Checks for 'x-gcp-project' (case-insensitive usually safe to check both)
@@ -47,3 +58,52 @@ class DynamicGCPRouter(CustomLogger):
             data["vertex_location"] = location
 
         return data
+    
+    async def async_post_call_failure_hook(
+        self, 
+        request_data: dict,
+        original_exception: Exception, 
+        user_api_key_dict: UserAPIKeyAuth,
+        traceback_str: Optional[str] = None,
+    ):
+        pass
+
+    async def async_post_call_success_hook(
+        self,
+        data: dict,
+        user_api_key_dict: UserAPIKeyAuth,
+        response,
+    ):
+        pass
+
+    async def async_moderation_hook( # call made in parallel to llm api call
+        self,
+        data: dict,
+        user_api_key_dict: UserAPIKeyAuth,
+        call_type: Literal["completion", "embeddings", "image_generation", "moderation", "audio_transcription"],
+    ):
+        pass
+
+    async def async_post_call_streaming_hook(
+        self,
+        user_api_key_dict: UserAPIKeyAuth,
+        response: str,
+    ):
+        pass
+
+    async def async_post_call_streaming_iterator_hook(
+        self,
+        user_api_key_dict: UserAPIKeyAuth,
+        response: Any,
+        request_data: dict,
+    ) -> AsyncGenerator[ModelResponseStream, None]:
+        """
+        Passes the entire stream to the guardrail
+
+        This is useful for plugins that need to see the entire stream.
+        """
+        async for item in response:
+            yield item
+
+
+proxy_handler_instance = DynamicGCPRouter()

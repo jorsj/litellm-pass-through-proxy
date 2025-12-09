@@ -8,3 +8,6 @@ model_list:
   - model_name: gemini-2.5-flash
     litellm_params:
         model: vertex_ai/gemini-2.5-flash
+
+litellm_settings:
+  callbacks: custom_callbacks.proxy_handler_instance # sets litellm.callbacks = [proxy_handler_instance]

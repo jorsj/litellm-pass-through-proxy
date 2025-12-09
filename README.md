@@ -18,7 +18,7 @@ This is a lightweight proxy server using [LiteLLM](https://github.com/BerriAI/li
 
 2.  **Run the Proxy:**
     ```bash
-    uv run run_proxy.py
+    uv run litellm --config config.yaml
     ```
     The server will start on `http://0.0.0.0:8000`.
 
@@ -64,3 +64,22 @@ The proxy is configured via `config.yaml`. You can add more models there if need
 - `gemini-3-pro-preview`
 - `gemini-2.5-flash`
 - `imagen-3.0-generate-001`
+
+## Deployment
+
+To deploy to Google Cloud Run, use the provided `deploy.sh` script:
+
+```bash
+./deploy.sh <PROJECT_ID> [REGION]
+```
+
+Example:
+
+```bash
+./deploy.sh my-gcp-project us-central1
+```
+
+This script will:
+1.  Enable necessary Google Cloud APIs.
+2.  Build the Docker image using Cloud Build.
+3.  Deploy the service to Cloud Run.
