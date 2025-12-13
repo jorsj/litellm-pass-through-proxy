@@ -50,7 +50,12 @@ class DynamicGCPRouter(CustomLogger):
         )
 
         model_id = data.get("model") if isinstance(data, dict) else None
-        is_vertex_model = isinstance(model_id, str) and model_id.startswith("vertex_ai/")
+        is_vertex_model = isinstance(model_id, str) and (
+            model_id.startswith("vertex_ai/") 
+            or model_id.startswith("gemini-")
+            or model_id.startswith("gemini_")
+            or model_id.startswith("vertexai")
+        )
         if is_vertex_model:
             project_id = key_metadata.get("gcp_project_id") if isinstance(key_metadata, dict) else None
             if not project_id:
@@ -59,35 +64,10 @@ class DynamicGCPRouter(CustomLogger):
                     model=model_id or "vertex_ai/unknown",
                     llm_provider="vertex_ai",
                 )
-
-        # 1. Handle Dynamic Project ID
-        # Checks for 'x-gcp-project' (case-insensitive usually safe to check both)
-        project_id = headers.get("x-gcp-project") or headers.get("x-gcp-project-id")
-        
-        #if project_id:
-        #    # Overwrite the 'vertex_project' parameter dynamically
-        #    data["vertex_project"] = project_id
-        
-        # 2. Handle Dynamic Auth Token
-        gcp_token = headers.get("x-gcp-token") or headers.get("authorization")
-        
-        if gcp_token:
-            # Inject as access_token, stripping 'Bearer ' if present
-            if gcp_token.lower().startswith("bearer "):
-                gcp_token = gcp_token[7:] # len("Bearer ") == 7
             
-            # Only set if it looks like a GCP token (simple heuristic or just pass it)
-            # For now, we assume if x-gcp-token is provided, it's the access token.
-            # If Authorization was used, it might be the proxy key, so be careful.
-            # The user specifically asked for x-gcp-token support.
-            
-            #if headers.get("x-gcp-token"):
-            #     data["access_token"] = gcp_token
-
-        # 3. Handle Dynamic Region/Location
-        location = headers.get("x-gcp-location")
-        #if location:
-        #    data["vertex_location"] = location
+            if project_id:
+                # Overwrite the 'vertex_project' parameter dynamically
+                data["vertex_project"] = project_id
 
         return data
     
