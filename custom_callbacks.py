@@ -1,8 +1,10 @@
 from litellm.integrations.custom_logger import CustomLogger
+from litellm.exceptions import InvalidRequestError
 import litellm
 from litellm.proxy.proxy_server import UserAPIKeyAuth, DualCache
 from litellm.types.utils import ModelResponseStream
 from typing import Any, AsyncGenerator, Optional, Literal
+import json
 
 class DynamicGCPRouter(CustomLogger):
     async def async_pre_call_hook(self, user_api_key_dict: UserAPIKeyAuth, cache: DualCache, data: dict, call_type: Literal[
@@ -27,13 +29,44 @@ class DynamicGCPRouter(CustomLogger):
         # Debug print to verify headers are coming through
         print(f"DEBUG: Incoming Headers: {headers.keys()}")
 
+        # 0. Inspect LiteLLM virtual-key metadata for downstream routing/validation.
+        key_tags = getattr(user_api_key_dict, "tags", None)
+        key_metadata_raw = getattr(user_api_key_dict, "metadata", None)
+        if isinstance(key_metadata_raw, str):
+            try:
+                key_metadata = json.loads(key_metadata_raw)
+            except json.JSONDecodeError:
+                key_metadata = None
+        else:
+            key_metadata = key_metadata_raw if isinstance(key_metadata_raw, dict) else None
+        key_alias = getattr(user_api_key_dict, "key_alias", None)
+        print(
+            "DEBUG: LiteLLM key",
+            {
+                "alias": key_alias,
+                "tags": key_tags,
+                "metadata": key_metadata,
+            },
+        )
+
+        model_id = data.get("model") if isinstance(data, dict) else None
+        is_vertex_model = isinstance(model_id, str) and model_id.startswith("vertex_ai/")
+        if is_vertex_model:
+            project_id = key_metadata.get("gcp_project_id") if isinstance(key_metadata, dict) else None
+            if not project_id:
+                raise InvalidRequestError(
+                    "Missing gcp_project_id in key metadata for Google Vertex requests.",
+                    model=model_id or "vertex_ai/unknown",
+                    llm_provider="vertex_ai",
+                )
+
         # 1. Handle Dynamic Project ID
         # Checks for 'x-gcp-project' (case-insensitive usually safe to check both)
         project_id = headers.get("x-gcp-project") or headers.get("x-gcp-project-id")
         
-        if project_id:
-            # Overwrite the 'vertex_project' parameter dynamically
-            data["vertex_project"] = project_id
+        #if project_id:
+        #    # Overwrite the 'vertex_project' parameter dynamically
+        #    data["vertex_project"] = project_id
         
         # 2. Handle Dynamic Auth Token
         gcp_token = headers.get("x-gcp-token") or headers.get("authorization")
@@ -48,13 +81,13 @@ class DynamicGCPRouter(CustomLogger):
             # If Authorization was used, it might be the proxy key, so be careful.
             # The user specifically asked for x-gcp-token support.
             
-            if headers.get("x-gcp-token"):
-                 data["access_token"] = gcp_token
+            #if headers.get("x-gcp-token"):
+            #     data["access_token"] = gcp_token
 
         # 3. Handle Dynamic Region/Location
         location = headers.get("x-gcp-location")
-        if location:
-            data["vertex_location"] = location
+        #if location:
+        #    data["vertex_location"] = location
 
         return data
     
