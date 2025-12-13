@@ -1,5 +1,7 @@
 # LiteLLM Pass-Through Proxy
 
+## https://docs.litellm.ai/docs/proxy/quick_start
+
 This is a lightweight proxy server using [LiteLLM](https://github.com/BerriAI/litellm) that dynamically forwards requests to different Google Cloud Platform (GCP) projects based on request headers.
 
 ## Features
@@ -12,14 +14,15 @@ This is a lightweight proxy server using [LiteLLM](https://github.com/BerriAI/li
 ## Setup
 
 1.  **Install Dependencies:**
-    ```bash
-    uv sync
-    ```
+  ```bash
+  poetry install
+  ```
 
 2.  **Run the Proxy:**
-    ```bash
-    uv run litellm --config config.yaml
-    ```
+  ```bash
+  poetry run run-proxy
+  ```
+  Este comando ejecuta automáticamente `prisma generate` usando el esquema incluido en LiteLLM; solo asegúrate de que tu base de datos (`database_url` en `config.yaml`) sea accesible.
     The server will start on `http://0.0.0.0:8000`.
 
 ## GCloud Auth Setup
@@ -92,6 +95,31 @@ The proxy is configured via `config.yaml`. You can add more models there if need
 - `gemini-3-pro-preview`
 - `gemini-2.5-flash`
 - `imagen-3.0-generate-001`
+
+## Custom Callbacks from a Mounted Volume
+
+1. Place `custom_callbacks.py` (or a package containing it) in the external directory you plan to mount, for example `/data/custom-callbacks`.
+2. Mount that directory inside the container, such as `/tmp/custom-callbacks`.
+3. Expose the mount to Python by setting `PYTHONPATH="/tmp/custom-callbacks:${PYTHONPATH}"` in the container environment.
+4. Reference the callback in `config.yaml` using the module path, for example `callbacks: custom_callbacks.proxy_handler_instance`.
+5. Restart the deployment so the proxy loads the newly mounted code.
+
+### Kubernetes manifest snippet
+
+```yaml
+        volumeMounts:
+          - name: custom-callbacks
+            mountPath: /tmp/custom-callbacks
+      env:
+        - name: PYTHONPATH
+          value: "/tmp/custom-callbacks:${PYTHONPATH}"
+      volumes:
+        - name: custom-callbacks
+          persistentVolumeClaim:
+            claimName: custom-callbacks-pvc
+```
+
+Any directory added to `PYTHONPATH` is appended to `sys.path`, which allows LiteLLM to import the callback module at runtime via `importlib.import_module`.
 
 ## Deployment
 
